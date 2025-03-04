@@ -1,0 +1,10 @@
+[package]
+name = "udp_testing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8.1"
+bincode = "1.3.3"
+serde = { version = "1.0.218", features = [ "derive" ] }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
