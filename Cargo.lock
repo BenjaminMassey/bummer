@@ -102,6 +102,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c8214115b7bf84099f1309324e63141d4c5d7cc26862f97a0a857dbefe165bd"
 
 [[package]]
+name = "bummer"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bincode",
+ "rand",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -589,17 +600,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "udp_testing"
-version = "0.1.0"
-dependencies = [
- "axum",
- "bincode",
- "rand",
- "serde",
- "tokio",
 ]
 
 [[package]]
