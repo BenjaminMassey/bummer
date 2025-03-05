@@ -22,22 +22,5 @@ fn main() {
             println!("Server done.");
         }
     });
-    let _client = std::thread::spawn(|| {
-        std::thread::sleep(std::time::Duration::from_secs(10));
-        let msg = udp::client::test_message(
-            "42069",
-            "bob",
-            udp::data::PlayerState {
-                alive: true,
-                position: (1., 2., 3.),
-                rotation: (4., 5., 6.),
-            },
-        );
-        if let Err(e) = msg {
-            println!("Error in client: {e}");
-        } else {
-            println!("Client done.");
-        }
-    });
     http::server::start();
 }
