@@ -4,13 +4,27 @@ pub async fn ping() -> &'static str {
 
 pub async fn create_room( // TODO: authentication that this is some legit client
     axum::extract::Json(payload): axum::extract::Json<crate::http::data::CreateRoom>,
-) -> &'static str { // TODO: real response
-    let read = std::fs::read_to_string("secret.key");
-    if let Err(e) = read {
-        println!("Error with reading secret key : {e}.");
+) -> impl axum::response::IntoResponse {
+    // Check that from a valid client
+    let auth = std::fs::read_to_string("auth.key");
+    if let Err(e) = auth {
+        println!("Auth key read error: {e}");
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "failed with internal auth key reading");
     } else {
-        let key = read.unwrap();
-        let _ = crate::udp::client::create_room(&payload.room_id, &key);
+        let auth_key = auth.unwrap();
+        if &payload.auth_key != &auth_key {
+            return (axum::http::StatusCode::UNAUTHORIZED, "auth key failure");
+        }
     }
-    "ok"
+
+    // Verify that UDP call to create room coming from app itself
+    let secret = std::fs::read_to_string("secret.key");
+    if let Err(e) = secret {
+        println!("Secret key read error: {e}");
+        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "failed with internal secret key reading");
+    } else {
+        let secret_key = secret.unwrap();
+        let _ = crate::udp::client::create_room(&payload.room_id, &secret_key); // actual doing (unverifiable rn)
+        return (axum::http::StatusCode::OK, "room creation requested");
+    }
 }

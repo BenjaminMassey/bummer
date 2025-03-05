@@ -13,11 +13,12 @@ pub fn test_message(
     let server_addr = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
 
     // Create a game message
-    let message = crate::udp::data::PlayerMessage {
+    let player_message = crate::udp::data::PlayerMessage {
         game_id: game_id.to_owned(),
         player_id: player_id.to_owned(),
         state: state,
     };
+    let message = crate::udp::data::IncomingMessage::PlayerMessage(player_message);
 
     // Serialize the message to bytes
     let message_bytes = bincode::serialize(&message).unwrap();
@@ -55,10 +56,12 @@ pub fn create_room(
 
     let server_addr = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
 
-    let message = crate::udp::data::CreateRoomMessage {
+    let create_room_message = crate::udp::data::CreateRoomMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
     };
+    let message = crate::udp::data::IncomingMessage::CreateRoomMessage(create_room_message);
+
     let message_bytes = bincode::serialize(&message).unwrap();
 
     socket.send_to(&message_bytes, server_addr)?;

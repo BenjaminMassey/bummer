@@ -13,21 +13,17 @@ pub fn start(secret_key: &str) -> std::io::Result<()> {
     loop {
         let (amt, src) = socket.recv_from(&mut buf)?;
 
-        let mut response: Option<Vec<u8>> = None;
+        let response: Vec<u8> = match bincode::deserialize::<crate::udp::data::IncomingMessage>(&buf[..amt]) {
+            Ok(crate::udp::data::IncomingMessage::PlayerMessage(player_message)) => {
+                handle_player_message(&mut states, player_message)
+            },
+            Ok(crate::udp::data::IncomingMessage::CreateRoomMessage(create_room_message)) => {
+                handle_create_room_message(&mut states, &secret_key, create_room_message)
+            },
+            _ => bincode::serialize("Unknown message type.").unwrap(),
+        };
         
-        let player_message: Result<crate::udp::data::PlayerMessage, _> = bincode::deserialize(&buf[..amt]);
-        if let Ok(player_message) = player_message {
-            response = Some(handle_player_message(&mut states, player_message));
-        }
-
-        let create_room_message: Result<crate::udp::data::CreateRoomMessage, _> = bincode::deserialize(&buf[..amt]);
-        if let Ok(create_room_message) = create_room_message {
-            handle_create_room_message(&mut states, &secret_key, create_room_message);
-        }
-
-        if let Some(res) = response {
-            socket.send_to(&res, src)?;
-        }
+        socket.send_to(&response, src)?;
     }
 }
 
@@ -61,13 +57,14 @@ fn handle_create_room_message(
     states: &mut HashMap<String, crate::udp::data::GameState>,
     secret_key: &str,
     create_room_message: crate::udp::data::CreateRoomMessage,
-) {
+) -> Vec<u8> {
     if &create_room_message.secret_key == &secret_key {
-        let room_id = create_room_message.room_id.clone();
-        println!("Adding room: {room_id}");
+        let room_id = &create_room_message.room_id;
         states.insert(
-            room_id,
+            room_id.clone(),
             crate::udp::data::GameState { data: HashMap::new() },
         );
+        return bincode::serialize(&format!("Success in creating room {room_id}")).unwrap();
     }
+    bincode::serialize("Create room met with incorrect secret key.").unwrap()
 }
