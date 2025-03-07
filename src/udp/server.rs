@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use rand::seq::index;
+
 pub fn start(secret_key: &str) -> std::io::Result<()> {
     let host = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
     let socket = std::net::UdpSocket::bind(&host)?;
@@ -15,18 +17,42 @@ pub fn start(secret_key: &str) -> std::io::Result<()> {
 
         let data = String::from_utf8_lossy(&buf[..amt]);
         
-        let mut response = "Failed to understand data.".to_owned();
+        let mut response = "failure".to_owned();
         
-        let player_message: Result<crate::udp::data::PlayerMessage, serde_json::Error> = 
+        let tagged_message: Result<crate::udp::data::TaggedMessage, serde_json::Error> = 
             serde_json::from_str(&data);
-        if let Ok(msg) = player_message {
-            response = handle_player_message(&mut states, msg);
-        }
-
-        let create_room_message: Result<crate::udp::data::CreateRoomMessage, serde_json::Error> = 
-            serde_json::from_str(&data);
-        if let Ok(msg) = create_room_message {
-            response = handle_create_room_message(&mut states, secret_key, msg);
+        if let Ok(message) = tagged_message {
+            if &message.tag == "player_message" {
+                let player_message: Result<crate::udp::data::PlayerMessage, serde_json::Error> = 
+                    serde_json::from_str(&message.data);
+                if let Ok(msg) = player_message {
+                    response = handle_player_message(&mut states, msg);
+                }
+            } else if &message.tag == "create_room" {
+                let create_room_message: Result<crate::udp::data::CreateRoomMessage, serde_json::Error> = 
+                    serde_json::from_str(&message.data);
+                if let Ok(msg) = create_room_message {
+                    response = handle_create_room_message(&mut states, secret_key, msg);
+                }
+            } else if &message.tag == "check_room" {
+                let check_room_message: Result<crate::udp::data::CheckRoomMessage, serde_json::Error> = 
+                    serde_json::from_str(&message.data);
+                if let Ok(msg) = check_room_message {
+                    response = handle_check_room_message(&mut states, secret_key, msg);
+                }
+            } else if &message.tag == "delete_room" {
+                let delete_room_message: Result<crate::udp::data::DeleteRoomMessage, serde_json::Error> = 
+                    serde_json::from_str(&message.data);
+                if let Ok(msg) = delete_room_message {
+                    response = handle_delete_room_message(&mut states, secret_key, msg);
+                }
+            } else if &message.tag == "delete_players" {
+                let delete_players_message: Result<crate::udp::data::DeletePlayersMessage, serde_json::Error> = 
+                    serde_json::from_str(&message.data);
+                if let Ok(msg) = delete_players_message {
+                    response = handle_delete_players_message(&mut states, secret_key, msg);
+                }
+            }
         }
         
         socket.send_to(&response.as_bytes(), src)?;
@@ -37,23 +63,34 @@ fn handle_player_message(
     states: &mut HashMap<String, crate::udp::data::GameState>,
     player_message: crate::udp::data::PlayerMessage
 ) -> String {
-    if let Some(state) = states.get_mut(&player_message.game_id) {
+    if let Some(state) = states.get_mut(&player_message.room_id) {
+        state.last_time = crate::util::epoch_time();
         if let Some(entry) = state.data.get_mut(&player_message.player_id) {
-            *entry = player_message.state;
+            *entry = crate::udp::data::TimedPlayerState {
+                last_time: crate::util::epoch_time(),
+                state: player_message.state,
+            };
         } else {
-            state.data.insert(player_message.player_id, player_message.state);
+            state.data.insert(
+                player_message.player_id.clone(),
+                crate::udp::data::TimedPlayerState {
+                    last_time: crate::util::epoch_time(),
+                    state: player_message.state,
+                },
+            );
+            state.names.push(player_message.player_id);
         }
         let game_msg = crate::udp::data::GameMessage {
-            time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis(),
-            state: states[&player_message.game_id].clone(),
+            time: crate::util::epoch_time(),
+            state: states[&player_message.room_id].clone(),
         };
         if let Ok(str) = serde_json::to_string(&game_msg) {
             return str;
         } else {
-            return "Failure to JSONify game message.".to_owned();
+            return "parse error".to_owned();
         }
     } else {
-        return format!("Game {} does not exist.", &player_message.game_id);
+        return "no room".to_owned();
     }
 }
 
@@ -64,11 +101,84 @@ fn handle_create_room_message(
 ) -> String {
     if &create_room_message.secret_key == &secret_key {
         let room_id = &create_room_message.room_id;
-        states.insert(
-            room_id.clone(),
-            crate::udp::data::GameState { data: HashMap::new() },
-        );
-        return format!("Success in creating room {room_id}");
+        if states.contains_key(room_id) {
+            return "Room Already Exists.".to_owned();
+        } else {
+            states.insert(
+                room_id.to_owned(),
+                crate::udp::data::GameState {
+                    names: vec![],
+                    last_time: crate::util::epoch_time(),
+                    data: HashMap::new(),
+                },
+            );
+            return "success".to_owned();
+        }
     }
-    "Create room met with incorrect secret key.".to_owned()
+    "Internal Server Error 5".to_owned()
+}
+
+fn handle_check_room_message(
+    states: &mut HashMap<String, crate::udp::data::GameState>,
+    secret_key: &str,
+    check_room_message: crate::udp::data::CheckRoomMessage,
+) -> String {
+    if &check_room_message.secret_key == &secret_key {
+        let room_id = &check_room_message.room_id;
+        if states.contains_key(room_id) {
+            return "success".to_owned();
+        } else {
+            return "Room does not exist.".to_owned();
+        }
+    }
+    "Internal Server Error 6".to_owned()
+}
+
+fn handle_delete_room_message(
+    states: &mut HashMap<String, crate::udp::data::GameState>,
+    secret_key: &str,
+    delete_room_message: crate::udp::data::DeleteRoomMessage,
+) -> String {
+    if &delete_room_message.secret_key == &secret_key {
+        let room_id = &delete_room_message.room_id;
+        if states.contains_key(room_id) {
+            if crate::util::epoch_time() - states[room_id].last_time >= 4000 {
+                let _ = states.remove(room_id);
+                return "success".to_owned();
+            } else {
+                return "Room is active.".to_owned();
+            }
+        } else {
+            return "Room does not exist.".to_owned();
+        }
+    }
+    "Internal Server Error 7".to_owned()
+}
+
+fn handle_delete_players_message(
+    states: &mut HashMap<String, crate::udp::data::GameState>,
+    secret_key: &str,
+    delete_players_message: crate::udp::data::DeletePlayersMessage,
+) -> String {
+    if &delete_players_message.secret_key == &secret_key {
+        let room_id = &delete_players_message.room_id;
+        if let Some(state) = states.get_mut(room_id) {
+            let mut names: Vec<String> = vec![];
+            for name in &state.names {
+                if state.data.contains_key(name) {
+                    if crate::util::epoch_time() - state.data[name].last_time >= 2000 {
+                        state.data.remove(name);
+                        println!("Deleted player {name} from room {room_id}.");
+                    } else {
+                        names.push(name.clone());
+                    }
+                }
+            }
+            state.names = names;
+            return "success".to_owned();
+        } else {
+            return "Room does not exist.".to_owned();
+        }
+    }
+    "Internal Server Error 8".to_owned()
 }

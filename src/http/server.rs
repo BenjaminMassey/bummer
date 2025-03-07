@@ -9,5 +9,6 @@ pub async fn start() {
 fn router() -> axum::Router {
     axum::Router::new()
         .route("/ping", axum::routing::get(crate::http::routes::ping))
+        .route("/checkRoom", axum::routing::get(crate::http::routes::check_room))
         .route("/createRoom", axum::routing::post(crate::http::routes::create_room))
 }

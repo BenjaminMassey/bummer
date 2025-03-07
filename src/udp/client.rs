@@ -8,7 +8,7 @@ pub fn send_message(message: &str) -> std::io::Result<String> {
 
     // Send the serialized message to the server
     socket.send_to(message.as_bytes(), server_addr)?;
-    println!("Sent to server: {:?}", message);
+    //println!("Sent to server: {:?}", message);
 
     // Receive a response from the server
     let mut buf = [0; 1024];
@@ -19,16 +19,20 @@ pub fn send_message(message: &str) -> std::io::Result<String> {
 }
 
 pub fn _test_message(
-    game_id: &str,
+    room_id: &str,
     player_id: &str,
     state: crate::udp::data::PlayerState,
 ) {
     let player_message = crate::udp::data::PlayerMessage {
-        game_id: game_id.to_owned(),
+        room_id: room_id.to_owned(),
         player_id: player_id.to_owned(),
         state,
     };
-    let response = send_message(&serde_json::to_string(&player_message).unwrap());
+    let tagged_message = crate::udp::data::TaggedMessage {
+        tag: "player_message".to_owned(),
+        data: serde_json::to_string(&player_message).unwrap(),
+    };
+    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
         println!("Received GameMessage from server: {res}");
     } else {
@@ -39,15 +43,79 @@ pub fn _test_message(
 pub fn create_room(
     room_id: &str,
     secret_key: &str,
-) {
+) -> String {
     let create_room_message = crate::udp::data::CreateRoomMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
     };
-    let response = send_message(&serde_json::to_string(&create_room_message).unwrap());
+    let tagged_message = crate::udp::data::TaggedMessage {
+        tag: "create_room".to_owned(),
+        data: serde_json::to_string(&create_room_message).unwrap(),
+    };
+    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
-        println!("Received GameMessage from server: {res}");
+        return res;
     } else {
-        println!("No message from server, or failed to parse.");
+        return "failure".to_owned();
+    }
+}
+
+pub fn check_room(
+    room_id: &str,
+    secret_key: &str,
+) -> String {
+    let check_room_message = crate::udp::data::CheckRoomMessage {
+        room_id: room_id.to_owned(),
+        secret_key: secret_key.to_owned(),
+    };
+    let tagged_message = crate::udp::data::TaggedMessage {
+        tag: "check_room".to_owned(),
+        data: serde_json::to_string(&check_room_message).unwrap(),
+    };
+    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
+    if let Ok(res) = response {
+        return res;
+    } else {
+        return "failure".to_owned();
+    }
+}
+
+pub fn delete_room(
+    room_id: &str,
+    secret_key: &str,
+) -> String {
+    let delete_room_message = crate::udp::data::DeleteRoomMessage {
+        room_id: room_id.to_owned(),
+        secret_key: secret_key.to_owned(),
+    };
+    let tagged_message = crate::udp::data::TaggedMessage {
+        tag: "delete_room".to_owned(),
+        data: serde_json::to_string(&delete_room_message).unwrap(),
+    };
+    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
+    if let Ok(res) = response {
+        return res;
+    } else {
+        return "failure".to_owned();
+    }
+}
+
+pub fn delete_players(
+    room_id: &str,
+    secret_key: &str,
+) -> String {
+    let delete_players_message = crate::udp::data::DeletePlayersMessage {
+        room_id: room_id.to_owned(),
+        secret_key: secret_key.to_owned(),
+    };
+    let tagged_message = crate::udp::data::TaggedMessage {
+        tag: "delete_players".to_owned(),
+        data: serde_json::to_string(&delete_players_message).unwrap(),
+    };
+    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
+    if let Ok(res) = response {
+        return res;
+    } else {
+        return "failure".to_owned();
     }
 }

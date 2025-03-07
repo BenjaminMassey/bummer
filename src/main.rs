@@ -2,6 +2,7 @@ use rand::Rng;
 
 mod http;
 mod udp;
+mod util;
 
 const ADDRESS: &str = "127.0.0.1";
 const HTTP_PORT: u32 = 8080;
