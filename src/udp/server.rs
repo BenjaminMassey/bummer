@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use rand::seq::index;
-
 pub fn start(secret_key: &str) -> std::io::Result<()> {
     let host = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
     let socket = std::net::UdpSocket::bind(&host)?;
@@ -84,13 +82,24 @@ fn handle_player_message(
             time: crate::util::epoch_time(),
             state: states[&player_message.room_id].clone(),
         };
-        if let Ok(str) = serde_json::to_string(&game_msg) {
-            return str;
+        if let Ok(game_str) = serde_json::to_string(&game_msg) {
+            let tagged_msg = crate::udp::data::TaggedMessage {
+                tag: "game_state".to_owned(),
+                data: game_str,
+            };
+            if let Ok(str) = serde_json::to_string(&tagged_msg) {
+                return str;
+            } else {
+                return r#"{ "tag": "error", "data": "parse error 2" }"#.to_owned();
+            }
         } else {
-            return "parse error".to_owned();
+            return r#"{ "tag": "error", "data": "parse error 1" }"#.to_owned();
         }
     } else {
-        return "no room".to_owned();
+        return format!(
+            r#"{{ "tag": "error", "data": "{}" }}"#,
+            crate::udp::messages::NO_ROOM,
+        );
     }
 }
 
@@ -102,7 +111,10 @@ fn handle_create_room_message(
     if &create_room_message.secret_key == &secret_key {
         let room_id = &create_room_message.room_id;
         if states.contains_key(room_id) {
-            return "Room Already Exists.".to_owned();
+            return format!(
+                r#"{{ "tag": "error", "data": "{}" }}"#,
+                crate::udp::messages::EXISTING_ROOM,
+            );
         } else {
             states.insert(
                 room_id.to_owned(),
@@ -112,10 +124,10 @@ fn handle_create_room_message(
                     data: HashMap::new(),
                 },
             );
-            return "success".to_owned();
+            return r#"{ "tag": "success", "data": "Room created." }"#.to_owned();
         }
     }
-    "Internal Server Error 5".to_owned()
+    r#"{ "tag": "error", "data": "Internal Server Error 5" }"#.to_owned()
 }
 
 fn handle_check_room_message(
@@ -126,12 +138,15 @@ fn handle_check_room_message(
     if &check_room_message.secret_key == &secret_key {
         let room_id = &check_room_message.room_id;
         if states.contains_key(room_id) {
-            return "success".to_owned();
+            return r#"{ "tag": "success", "data": "Room exists." }"#.to_owned();
         } else {
-            return "Room does not exist.".to_owned();
+            return format!(
+                r#"{{ "tag": "success", "data": "{}" }}"#,
+                crate::udp::messages::NO_ROOM,
+            );
         }
     }
-    "Internal Server Error 6".to_owned()
+    r#"{ "tag": "error", "data": "Internal Server Error 6" }"#.to_owned()
 }
 
 fn handle_delete_room_message(
@@ -144,15 +159,21 @@ fn handle_delete_room_message(
         if states.contains_key(room_id) {
             if crate::util::epoch_time() - states[room_id].last_time >= 4000 {
                 let _ = states.remove(room_id);
-                return "success".to_owned();
+                return format!(
+                    r#"{{ "tag": "success", "data": "{}" }}"#,
+                    crate::udp::messages::ROOM_EXPIRED,
+                );
             } else {
-                return "Room is active.".to_owned();
+                return r#"{ "tag": "success", "data": "Room is active." }"#.to_owned();
             }
         } else {
-            return "Room does not exist.".to_owned();
+            return format!(
+                r#"{{ "tag": "error", "data": "{}" }}"#,
+                crate::udp::messages::NO_ROOM,
+            );
         }
     }
-    "Internal Server Error 7".to_owned()
+    r#"{ "tag": "error", "data": "Internal Server Error 7" }"#.to_owned()
 }
 
 fn handle_delete_players_message(
@@ -175,10 +196,13 @@ fn handle_delete_players_message(
                 }
             }
             state.names = names;
-            return "success".to_owned();
+            return r#"{ "tag": "success", "data": "Delete players handled." }"#.to_owned();
         } else {
-            return "Room does not exist.".to_owned();
+            return format!(
+                r#"{{ "tag": "error", "data": "{}" }}"#,
+                crate::udp::messages::NO_ROOM,
+            );
         }
     }
-    "Internal Server Error 8".to_owned()
+    r#"{ "tag": "error", "data": "Internal Server Error 8" }"#.to_owned()
 }

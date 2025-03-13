@@ -43,7 +43,7 @@ pub fn _test_message(
 pub fn create_room(
     room_id: &str,
     secret_key: &str,
-) -> String {
+) -> Option<String> {
     let create_room_message = crate::udp::data::CreateRoomMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
@@ -54,16 +54,16 @@ pub fn create_room(
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
-        return res;
+        return Some(res);
     } else {
-        return "failure".to_owned();
+        return None;
     }
 }
 
 pub fn check_room(
     room_id: &str,
     secret_key: &str,
-) -> String {
+) -> Option<String> {
     let check_room_message = crate::udp::data::CheckRoomMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
@@ -74,16 +74,16 @@ pub fn check_room(
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
-        return res;
+        return Some(res);
     } else {
-        return "failure".to_owned();
+        return None;
     }
 }
 
 pub fn delete_room(
     room_id: &str,
     secret_key: &str,
-) -> String {
+) -> Option<String> {
     let delete_room_message = crate::udp::data::DeleteRoomMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
@@ -94,16 +94,16 @@ pub fn delete_room(
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
-        return res;
+        return Some(res);
     } else {
-        return "failure".to_owned();
+        return None;
     }
 }
 
 pub fn delete_players(
     room_id: &str,
     secret_key: &str,
-) -> String {
+) -> Option<String> {
     let delete_players_message = crate::udp::data::DeletePlayersMessage {
         room_id: room_id.to_owned(),
         secret_key: secret_key.to_owned(),
@@ -114,8 +114,8 @@ pub fn delete_players(
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
     if let Ok(res) = response {
-        return res;
+        return Some(res);
     } else {
-        return "failure".to_owned();
+        return None;
     }
 }

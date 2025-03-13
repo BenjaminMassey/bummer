@@ -25,20 +25,26 @@ pub async fn create_room(
     } else {
         let room_id = payload.room_id.clone();
         let secret_key = secret.unwrap();
-        let response: String = crate::udp::client::create_room(&room_id, &secret_key);
-        let code = {
-            if &response == "success" {
-                axum::http::StatusCode::OK
-            } else {
-                axum::http::StatusCode::BAD_REQUEST
+        let response = crate::udp::client::create_room(&room_id, &secret_key);
+        let mut code = axum::http::StatusCode::INTERNAL_SERVER_ERROR;
+        let mut message = "Failed request.".to_owned();
+        if let Some(res) = response {
+            let tagged_msg: Result<crate::udp::data::TaggedMessage, _> = serde_json::from_str(&res);
+            if let Ok(msg) = tagged_msg {
+                if &msg.tag == "success" {
+                    code = axum::http::StatusCode::OK;
+                } else if &msg.tag == "error" && &msg.data == crate::udp::messages::EXISTING_ROOM {
+                    code = axum::http::StatusCode::BAD_REQUEST;
+                }
+                message = msg.data;
             }
-        };
+        }
         if code == axum::http::StatusCode::OK {
             let _handler = std::thread::spawn(move || {
                 handle_room_state(&room_id, &secret_key);
             });
         }
-        return (code, response);
+        return (code, message.to_owned());
     }
 }
 
@@ -64,24 +70,37 @@ pub async fn check_room(
         return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 4.".to_owned());
     } else {
         let secret_key = secret.unwrap();
-        let response: String = crate::udp::client::check_room(&payload.room_id, &secret_key);
-        let code = {
-            if &response == "success" {
-                axum::http::StatusCode::OK
-            } else {
-                axum::http::StatusCode::BAD_REQUEST
+        let response = crate::udp::client::check_room(&payload.room_id, &secret_key);
+        let mut code = axum::http::StatusCode::INTERNAL_SERVER_ERROR;
+        let mut message = "Failed request.".to_owned();
+        if let Some(res) = response {
+            let tagged_msg: Result<crate::udp::data::TaggedMessage, _> = serde_json::from_str(&res);
+            if let Ok(msg) = tagged_msg {
+                if &msg.tag == "success" {
+                    code = axum::http::StatusCode::OK;
+                    message = msg.data;
+                }
             }
-        };
-        return (code, response);
+        }
+        return (code, message.to_owned());
     }
 }
 
 fn handle_room_state(room_id: &str, secret_key: &str) {
     //println!("Starting handler for room {room_id}.");
     loop {
-        let response: String = crate::udp::client::delete_room(room_id, secret_key);
-        if &response == "success" {
-            break;
+        let response = crate::udp::client::delete_room(room_id, secret_key);
+        if let Some(res) = response {
+            let tagged_msg: Result<crate::udp::data::TaggedMessage, _> = serde_json::from_str(&res);
+            if let Ok(msg) = tagged_msg {
+                if &msg.tag == "success" && &msg.data == crate::udp::messages::ROOM_EXPIRED {
+                    break;
+                }
+                if &msg.tag == "error" && &msg.data == crate::udp::messages::NO_ROOM {
+                    println!("internal error of http::routes::handle_room_state(..) trying room that doesn't exist");
+                    break;
+                }
+            }
         }
         let _ = crate::udp::client::delete_players(room_id, secret_key);
         //println!("Room {room_id} is active.");
