@@ -13,6 +13,7 @@ pub struct PlayerMessage {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct TimedPlayerState {
+    pub index: u32,
     pub last_time: u128,
     pub state: PlayerState,
 }

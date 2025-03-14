@@ -65,6 +65,7 @@ fn handle_player_message(
         state.last_time = crate::util::epoch_time();
         if let Some(entry) = state.data.get_mut(&player_message.player_id) {
             *entry = crate::udp::data::TimedPlayerState {
+                index: entry.index,
                 last_time: crate::util::epoch_time(),
                 state: player_message.state,
             };
@@ -72,6 +73,7 @@ fn handle_player_message(
             state.data.insert(
                 player_message.player_id.clone(),
                 crate::udp::data::TimedPlayerState {
+                    index: state.names.len() as u32,
                     last_time: crate::util::epoch_time(),
                     state: player_message.state,
                 },
