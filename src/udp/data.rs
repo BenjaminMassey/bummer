@@ -21,6 +21,7 @@ pub struct TimedPlayerState {
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct PlayerState {
     pub alive: bool,
+    pub ready: bool,
     pub position: (f32, f32, f32),
     pub rotation: (f32, f32, f32),
 }
