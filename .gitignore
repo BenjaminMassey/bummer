@@ -1,2 +1,4 @@
 /target
 *.key
+/examples/*/Cargo.lock
+/examples/*/target/

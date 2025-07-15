@@ -51,9 +51,10 @@ pub fn start(secret_key: &str) -> std::io::Result<()> {
                     response = handle_delete_players_message(&mut states, secret_key, msg);
                 }
             }
+            socket.send_to(&response.as_bytes(), src)?;
+        } else if let Err(e) = tagged_message {
+            socket.send_to(&format!("{e:?}").as_bytes(), src)?;
         }
-        
-        socket.send_to(&response.as_bytes(), src)?;
     }
 }
 
