@@ -6,14 +6,24 @@
 
 ## Usage
 
-To run a <b>BUMMER</b> server, one would simply need a Rust project like so:
+The most minimal example for running a <b>BUMMER</b> server is found in the [`minimal-server` example](https://github.com/BenjaminMassey/bummer/blob/main/examples/minimal-server). Note that it will note be very useful, since the sending and receiving of some useful `PlayerState` is primarily the purpose of <b>BUMMER</b>. Here is that minimal example:
 
 `cargo add --git https://www.github.com/BenjaminMassey/bummer.git`
+
+`cargo add serde --features derive`
+
+`echo abc123 > auth.key`
+
 ```rust
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+struct PlayerState;
+
 fn main() {
-    bummer::start();
+    bummer::start(PlayerState);
 }
 ```
+
+Note that the client and server need a shared authorization key to refer to. On the <b>BUMMER</b> server side, create a file `auth.key` in its root directory. Then, ingesting the text however you like, have your client use that same authorization key in your HTTP requests to the server.
 
 For a more complete example, where there is a real enough game client, and basic server interaction occurs, see the [`minimal-macroquad` example](https://github.com/BenjaminMassey/bummer/blob/main/examples/minimal-macroquad).
 

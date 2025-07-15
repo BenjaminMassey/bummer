@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 
-pub fn start(secret_key: &str) -> std::io::Result<()> {
+pub fn start<T>(secret_key: &str, _state_example: T) -> std::io::Result<()>
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone
+{
     let host = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
     let socket = std::net::UdpSocket::bind(&host)?;
     println!("UDP server is listening on {host}");
 
     // Game/Room ID => Game State
-    let mut states: HashMap<String, crate::udp::data::GameState> = HashMap::new();
+    let mut states: HashMap<String, crate::udp::data::GameState<T>> = HashMap::new();
 
     let mut buf = [0; 1024];
 
@@ -21,7 +24,7 @@ pub fn start(secret_key: &str) -> std::io::Result<()> {
             serde_json::from_str(&data);
         if let Ok(message) = tagged_message {
             if &message.tag == "player_message" {
-                let player_message: Result<crate::udp::data::PlayerMessage, serde_json::Error> = 
+                let player_message: Result<crate::udp::data::PlayerMessage<T>, serde_json::Error> = 
                     serde_json::from_str(&message.data);
                 if let Ok(msg) = player_message {
                     response = handle_player_message(&mut states, msg);
@@ -58,10 +61,13 @@ pub fn start(secret_key: &str) -> std::io::Result<()> {
     }
 }
 
-fn handle_player_message(
-    states: &mut HashMap<String, crate::udp::data::GameState>,
-    player_message: crate::udp::data::PlayerMessage
-) -> String {
+fn handle_player_message<T>(
+    states: &mut HashMap<String, crate::udp::data::GameState<T>>,
+    player_message: crate::udp::data::PlayerMessage<T>
+)-> String
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone
+{
     if let Some(state) = states.get_mut(&player_message.room_id) {
         state.last_time = crate::util::epoch_time();
         if let Some(entry) = state.data.get_mut(&player_message.player_id) {
@@ -106,11 +112,14 @@ fn handle_player_message(
     }
 }
 
-fn handle_create_room_message(
-    states: &mut HashMap<String, crate::udp::data::GameState>,
+fn handle_create_room_message<T>(
+    states: &mut HashMap<String, crate::udp::data::GameState<T>>,
     secret_key: &str,
     create_room_message: crate::udp::data::CreateRoomMessage,
-) -> String {
+) -> String
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone
+{
     if &create_room_message.secret_key == &secret_key {
         let room_id = &create_room_message.room_id;
         if states.contains_key(room_id) {
@@ -133,11 +142,14 @@ fn handle_create_room_message(
     r#"{ "tag": "error", "data": "Internal Server Error 5" }"#.to_owned()
 }
 
-fn handle_check_room_message(
-    states: &mut HashMap<String, crate::udp::data::GameState>,
+fn handle_check_room_message<T>(
+    states: &mut HashMap<String, crate::udp::data::GameState<T>>,
     secret_key: &str,
     check_room_message: crate::udp::data::CheckRoomMessage,
-) -> String {
+) -> String
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone
+{
     if &check_room_message.secret_key == &secret_key {
         let room_id = &check_room_message.room_id;
         if states.contains_key(room_id) {
@@ -152,11 +164,14 @@ fn handle_check_room_message(
     r#"{ "tag": "error", "data": "Internal Server Error 6" }"#.to_owned()
 }
 
-fn handle_delete_room_message(
-    states: &mut HashMap<String, crate::udp::data::GameState>,
+fn handle_delete_room_message<T>(
+    states: &mut HashMap<String, crate::udp::data::GameState<T>>,
     secret_key: &str,
     delete_room_message: crate::udp::data::DeleteRoomMessage,
-) -> String {
+) -> String
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone
+{
     if &delete_room_message.secret_key == &secret_key {
         let room_id = &delete_room_message.room_id;
         if states.contains_key(room_id) {
@@ -179,11 +194,13 @@ fn handle_delete_room_message(
     r#"{ "tag": "error", "data": "Internal Server Error 7" }"#.to_owned()
 }
 
-fn handle_delete_players_message(
-    states: &mut HashMap<String, crate::udp::data::GameState>,
+fn handle_delete_players_message<T>(
+    states: &mut HashMap<String, crate::udp::data::GameState<T>>,
     secret_key: &str,
     delete_players_message: crate::udp::data::DeletePlayersMessage,
-) -> String {
+) -> String
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone {
     if &delete_players_message.secret_key == &secret_key {
         let room_id = &delete_players_message.room_id;
         if let Some(state) = states.get_mut(room_id) {

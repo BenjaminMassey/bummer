@@ -22,16 +22,21 @@ pub fn check_room() {
     assert!(create.status().is_success() && &create.text().unwrap() == "Room exists.");
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct PlayerState {
+    pub position: (f32, f32)
+}
+impl Default for PlayerState {
+    fn default() -> Self {
+        Self { position: (0.0, 0.0) }
+    }
+}
+
 pub fn udp(socket: &std::net::UdpSocket, name: &str, x: f32, y: f32) -> String {
     let player_message = bummer::udp::data::PlayerMessage {
         room_id: "test".to_owned(),
         player_id: name.to_owned(),
-        state: bummer::udp::data::PlayerState {
-            alive: true,
-            ready: true,
-            position: (x, y, 0.0),
-            rotation: (0.0, 0.0, 0.0),
-        },
+        state: PlayerState { position: (x, y) },
     };
     let tagged_message = bummer::udp::data::TaggedMessage {
         tag: "player_message".to_owned(),

@@ -8,6 +8,10 @@ The most basic multiplayer interaction using the [`macroquad` crate](https://www
 
 ## How-To
 
+Make sure this project has a file `auth.key` at its root. This is used for <b>BUMMER</b> HTTP requests (room handling).
+
+`echo abc123 > auth.key`
+
 In one instance, run:
 
 `cargo run -- --name bob --host`

@@ -4,26 +4,18 @@ pub struct TaggedMessage {
     pub data: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct PlayerMessage {
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct PlayerMessage<T> {
     pub room_id: String,
     pub player_id: String,
-    pub state: PlayerState,
+    pub state: T,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct TimedPlayerState {
+pub struct TimedPlayerState<T> {
     pub index: u32,
     pub last_time: u128,
-    pub state: PlayerState,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct PlayerState {
-    pub alive: bool,
-    pub ready: bool,
-    pub position: (f32, f32, f32),
-    pub rotation: (f32, f32, f32),
+    pub state: T,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -51,14 +43,14 @@ pub struct DeletePlayersMessage {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct GameMessage {
+pub struct GameMessage<T> {
     pub time: u128,
-    pub state: GameState,
+    pub state: GameState<T>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct GameState {
+pub struct GameState<T> {
     pub names: Vec<String>,
     pub last_time: u128,
-    pub data: std::collections::HashMap<String, TimedPlayerState>,
+    pub data: std::collections::HashMap<String, TimedPlayerState<T>>,
 }

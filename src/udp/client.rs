@@ -18,28 +18,6 @@ pub fn send_message(message: &str) -> std::io::Result<String> {
     Ok(data.to_string())
 }
 
-pub fn _test_message(
-    room_id: &str,
-    player_id: &str,
-    state: crate::udp::data::PlayerState,
-) {
-    let player_message = crate::udp::data::PlayerMessage {
-        room_id: room_id.to_owned(),
-        player_id: player_id.to_owned(),
-        state,
-    };
-    let tagged_message = crate::udp::data::TaggedMessage {
-        tag: "player_message".to_owned(),
-        data: serde_json::to_string(&player_message).unwrap(),
-    };
-    let response = send_message(&serde_json::to_string(&tagged_message).unwrap());
-    if let Ok(res) = response {
-        println!("Received GameMessage from server: {res}");
-    } else {
-        println!("No message from server, or failed to parse.");
-    }
-}
-
 pub fn create_room(
     room_id: &str,
     secret_key: &str,

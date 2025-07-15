@@ -33,7 +33,7 @@ async fn main() {
     let args = Args::parse();
     if args.host {
         let _ = std::thread::spawn(move || {
-            bummer::start();
+            bummer::start(multiplayer::PlayerState::default());
         });
         multiplayer::create_room();
     } else {
@@ -58,7 +58,8 @@ async fn main() {
 
         let response = multiplayer::udp(&socket, &args.name, my_pos.0, my_pos.1);
         let tagged_response: bummer::udp::data::TaggedMessage = serde_json::from_str(&response).unwrap();
-        let game_message: bummer::udp::data::GameMessage = serde_json::from_str(&tagged_response.data).unwrap();
+        let game_message: bummer::udp::data::GameMessage<multiplayer::PlayerState> =
+            serde_json::from_str(&tagged_response.data).unwrap();
         for (player_name, player_state) in game_message.state.data.iter() {
             if player_name != &args.name {
                 let pos = player_state.state.position;

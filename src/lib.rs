@@ -6,14 +6,16 @@ mod util;
 
 pub use self::udp::data::TaggedMessage;
 pub use self::udp::data::PlayerMessage;
-pub use self::udp::data::PlayerState;
 pub use self::udp::data::GameState;
 
 const ADDRESS: &str = "127.0.0.1";
 const HTTP_PORT: u32 = 8080;
 const UDP_PORT: u32 = 8081;
 
-pub fn start() {
+pub fn start<T>(state_example: T)
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone + std::marker::Send + 'static
+{
     let secret_key: String = rand::rng()
         .sample_iter(rand::distr::Alphanumeric)
         .take(512)
@@ -21,7 +23,7 @@ pub fn start() {
         .collect();
     let _ = std::fs::write("secret.key", &secret_key);
     let _udp = std::thread::spawn(move || {
-        let run = udp::server::start(&secret_key);
+        let run = udp::server::start(&secret_key, state_example);
         if let Err(e) = run {
             println!("Error in server: {e}");
         } else {
