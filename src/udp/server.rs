@@ -4,7 +4,9 @@ pub fn start<T>(secret_key: &str, _state_example: T) -> std::io::Result<()>
 where
     T: serde::Serialize + serde::de::DeserializeOwned + Clone
 {
-    let host = format!("{}:{}", crate::ADDRESS, crate::UDP_PORT);
+    let settings = crate::settings::get_settings();
+
+    let host = format!("{}:{}", settings.udp.address, settings.udp.port);
     let socket = std::net::UdpSocket::bind(&host)?;
     println!("UDP server is listening on {host}");
 

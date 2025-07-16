@@ -1,16 +1,13 @@
 use rand::Rng;
 
 mod http;
+mod settings;
 pub mod udp;
 mod util;
 
 pub use self::udp::data::TaggedMessage;
 pub use self::udp::data::PlayerMessage;
 pub use self::udp::data::GameState;
-
-const ADDRESS: &str = "127.0.0.1";
-const HTTP_PORT: u32 = 8080;
-const UDP_PORT: u32 = 8081;
 
 pub fn start<T>(state_example: T)
 where
