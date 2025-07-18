@@ -1,6 +1,6 @@
 pub fn send_message(message: &str, settings: &crate::settings::Settings) -> std::io::Result<String> {
     // Create a UDP socket for the client
-    let socket = std::net::UdpSocket::bind(&format!("{}:0", settings.udp.address))?;
+    let socket = std::net::UdpSocket::bind(format!("{}:0", settings.udp.address))?;
     println!("Client is running on {}", socket.local_addr()?);
 
     // Server address
@@ -32,11 +32,7 @@ pub fn create_room(
         data: serde_json::to_string(&create_room_message).unwrap(),
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap(), settings);
-    if let Ok(res) = response {
-        return Some(res);
-    } else {
-        return None;
-    }
+    response.ok()
 }
 
 pub fn check_room(
@@ -53,11 +49,7 @@ pub fn check_room(
         data: serde_json::to_string(&check_room_message).unwrap(),
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap(), settings);
-    if let Ok(res) = response {
-        return Some(res);
-    } else {
-        return None;
-    }
+    response.ok()
 }
 
 pub fn delete_room(
@@ -74,11 +66,7 @@ pub fn delete_room(
         data: serde_json::to_string(&delete_room_message).unwrap(),
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap(), settings);
-    if let Ok(res) = response {
-        return Some(res);
-    } else {
-        return None;
-    }
+    response.ok()
 }
 
 pub fn delete_players(
@@ -95,9 +83,5 @@ pub fn delete_players(
         data: serde_json::to_string(&delete_players_message).unwrap(),
     };
     let response = send_message(&serde_json::to_string(&tagged_message).unwrap(), settings);
-    if let Ok(res) = response {
-        return Some(res);
-    } else {
-        return None;
-    }
+    response.ok()
 }

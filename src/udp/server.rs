@@ -56,9 +56,9 @@ where
                     response = handle_delete_players_message(&mut states, secret_key, msg);
                 }
             }
-            socket.send_to(&response.as_bytes(), src)?;
+            socket.send_to(response.as_bytes(), src)?;
         } else if let Err(e) = tagged_message {
-            socket.send_to(&format!("{e:?}").as_bytes(), src)?;
+            socket.send_to(format!("{e:?}").as_bytes(), src)?;
         }
     }
 }
@@ -99,18 +99,18 @@ where
                 data: game_str,
             };
             if let Ok(str) = serde_json::to_string(&tagged_msg) {
-                return str;
+                str
             } else {
-                return r#"{ "tag": "error", "data": "parse error 2" }"#.to_owned();
+                r#"{ "tag": "error", "data": "parse error 2" }"#.to_owned()
             }
         } else {
-            return r#"{ "tag": "error", "data": "parse error 1" }"#.to_owned();
+            r#"{ "tag": "error", "data": "parse error 1" }"#.to_owned()
         }
     } else {
-        return format!(
+        format!(
             r#"{{ "tag": "error", "data": "{}" }}"#,
             crate::udp::messages::NO_ROOM,
-        );
+        )
     }
 }
 
@@ -122,7 +122,7 @@ fn handle_create_room_message<T>(
 where
     T: serde::Serialize + serde::de::DeserializeOwned + Clone
 {
-    if &create_room_message.secret_key == &secret_key {
+    if create_room_message.secret_key == secret_key {
         let room_id = &create_room_message.room_id;
         if states.contains_key(room_id) {
             return format!(
@@ -152,7 +152,7 @@ fn handle_check_room_message<T>(
 where
     T: serde::Serialize + serde::de::DeserializeOwned + Clone
 {
-    if &check_room_message.secret_key == &secret_key {
+    if check_room_message.secret_key == secret_key {
         let room_id = &check_room_message.room_id;
         if states.contains_key(room_id) {
             return r#"{ "tag": "success", "data": "Room exists." }"#.to_owned();
@@ -174,7 +174,7 @@ fn handle_delete_room_message<T>(
 where
     T: serde::Serialize + serde::de::DeserializeOwned + Clone
 {
-    if &delete_room_message.secret_key == &secret_key {
+    if delete_room_message.secret_key == secret_key {
         let room_id = &delete_room_message.room_id;
         if states.contains_key(room_id) {
             if crate::util::epoch_time() - states[room_id].last_time >= 4000 {
@@ -203,7 +203,7 @@ fn handle_delete_players_message<T>(
 ) -> String
 where
     T: serde::Serialize + serde::de::DeserializeOwned + Clone {
-    if &delete_players_message.secret_key == &secret_key {
+    if delete_players_message.secret_key == secret_key {
         let room_id = &delete_players_message.room_id;
         if let Some(state) = states.get_mut(room_id) {
             let mut names: Vec<String> = vec![];

@@ -1,17 +1,17 @@
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
-    pub udp: UDP,
-    pub http: HTTP,
+    pub udp: Udp,
+    pub http: Http,
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct UDP {
+pub struct Udp {
     pub address: String,
     pub port: u32,
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct HTTP {
+pub struct Http {
     pub address: String,
     pub port: u32,
 }
