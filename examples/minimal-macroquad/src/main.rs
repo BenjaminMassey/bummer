@@ -12,10 +12,14 @@ const SPEED: f32 = 2.0;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(long)]
-    name: String,
     #[arg(long, default_value_t = false)]
     host: bool,
+    #[arg(name="host-only", long, default_value_t = false)]
+    host_only: bool,
+    #[arg(short, long, default_value_t = String::from("127.0.0.1"))]
+    server: String,
+    //#[arg(long)]
+    name: String,
 }
 
 
@@ -32,14 +36,22 @@ fn conf() -> Conf {
 async fn main() {
     let args = Args::parse();
     if args.host {
-        let _ = std::thread::spawn(move || {
+        let jh = std::thread::spawn(move || {
             bummer::start(multiplayer::PlayerState::default());
         });
-        multiplayer::create_room();
+        if args.host_only {
+            jh.join().unwrap();
+            std::process::exit(0);
+        } else {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            multiplayer::create_room(&args.server);
+        }
     } else {
-        multiplayer::check_room();
+        multiplayer::check_room(&args.server);
     }
-    let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    let server_addr = format!("{}:8081", &args.server);
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").unwrap();
+    socket.connect(&server_addr).unwrap();
     let mut my_pos = (100f32, 100f32);
     loop {
         clear_background(WHITE);

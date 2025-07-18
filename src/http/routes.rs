@@ -8,20 +8,22 @@ pub async fn create_room(
 ) -> impl axum::response::IntoResponse {
     // Check that from a valid client
     let auth = std::fs::read_to_string("auth.key");
-    if let Err(e) = auth {
-        println!("Auth key read error: {e}");
-        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 1.".to_owned());
-    } else {
-        let auth_key = auth.unwrap();
-        if payload.auth_key != auth_key {
-            return (axum::http::StatusCode::UNAUTHORIZED, "Authorization Failure.".to_owned());
+    match auth {
+        Err(e) => {
+            eprintln!("Auth key read error: {e}");
+            return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 1.".to_owned());
+        }
+        Ok(auth_key) => {
+            if payload.auth_key != auth_key.trim_end() {
+                return (axum::http::StatusCode::UNAUTHORIZED, "Authorization Failure.".to_owned());
+            }
         }
     }
 
     // Verify that UDP call to create room coming from app itself
     let secret = std::fs::read_to_string("secret.key");
     if let Err(e) = secret {
-        println!("Secret key read error: {e}");
+        eprintln!("Secret key read error: {e}");
         (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 2.".to_owned())
     } else {
         let room_id = payload.room_id.clone();
