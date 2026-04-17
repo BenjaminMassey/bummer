@@ -5,13 +5,13 @@ mod settings;
 pub mod udp;
 mod util;
 
-pub use self::udp::data::TaggedMessage;
-pub use self::udp::data::PlayerMessage;
 pub use self::udp::data::GameState;
+pub use self::udp::data::PlayerMessage;
+pub use self::udp::data::TaggedMessage;
 
 pub fn start<T>(state_example: T)
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + std::marker::Send + 'static
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone + std::marker::Send + 'static,
 {
     let secret_key: String = rand::rng()
         .sample_iter(rand::distr::Alphanumeric)
@@ -28,4 +28,11 @@ where
         }
     });
     http::server::start();
+}
+
+pub fn get_auth_key() -> Option<String> {
+    if let Ok(auth_key) = std::fs::read_to_string("auth.key") {
+        return Some(auth_key.trim().to_owned());
+    }
+    None
 }

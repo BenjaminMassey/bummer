@@ -3,26 +3,35 @@ pub async fn ping() -> &'static str {
 }
 
 pub async fn create_room(
-    axum::extract::State(state): axum::extract::State<std::sync::Arc<crate::http::server::AxumState>>,
+    axum::extract::State(state): axum::extract::State<
+        std::sync::Arc<crate::http::server::AxumState>,
+    >,
     axum::extract::Json(payload): axum::extract::Json<crate::http::data::CreateRoom>,
 ) -> impl axum::response::IntoResponse {
     // Check that from a valid client
-    let auth = std::fs::read_to_string("auth.key");
-    if let Err(e) = auth {
-        println!("Auth key read error: {e}");
-        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 1.".to_owned());
-    } else {
-        let auth_key = auth.unwrap();
-        if &payload.auth_key != &auth_key {
-            return (axum::http::StatusCode::UNAUTHORIZED, "Authorization Failure.".to_owned());
+    let auth_key = crate::get_auth_key();
+    if let Some(key) = auth_key {
+        if &payload.auth_key != &key {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                "Authorization Failure.".to_owned(),
+            );
         }
+    } else {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal Server Error 1.".to_owned(),
+        );
     }
 
     // Verify that UDP call to create room coming from app itself
     let secret = std::fs::read_to_string("secret.key");
     if let Err(e) = secret {
         println!("Secret key read error: {e}");
-        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 2.".to_owned());
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal Server Error 2.".to_owned(),
+        );
     } else {
         let room_id = payload.room_id.clone();
         let secret_key = secret.unwrap();
@@ -51,29 +60,39 @@ pub async fn create_room(
 }
 
 pub async fn check_room(
-    axum::extract::State(state): axum::extract::State<std::sync::Arc<crate::http::server::AxumState>>,
+    axum::extract::State(state): axum::extract::State<
+        std::sync::Arc<crate::http::server::AxumState>,
+    >,
     axum::extract::Json(payload): axum::extract::Json<crate::http::data::CheckRoom>,
 ) -> impl axum::response::IntoResponse {
     // Check that from a valid client
-    let auth = std::fs::read_to_string("auth.key");
-    if let Err(e) = auth {
-        println!("Auth key read error: {e}");
-        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 3.".to_owned());
-    } else {
-        let auth_key = auth.unwrap();
-        if &payload.auth_key != &auth_key {
-            return (axum::http::StatusCode::UNAUTHORIZED, "Authorization Failure.".to_owned());
+    let auth_key = crate::get_auth_key();
+    if let Some(key) = auth_key {
+        if &payload.auth_key != &key {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                "Authorization Failure.".to_owned(),
+            );
         }
+    } else {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal Server Error 3.".to_owned(),
+        );
     }
 
     // Verify that UDP call to create room coming from app itself
     let secret = std::fs::read_to_string("secret.key");
     if let Err(e) = secret {
         println!("Secret key read error: {e}");
-        return (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error 4.".to_owned());
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal Server Error 4.".to_owned(),
+        );
     } else {
         let secret_key = secret.unwrap();
-        let response = crate::udp::client::check_room(&payload.room_id, &secret_key, &state.settings);
+        let response =
+            crate::udp::client::check_room(&payload.room_id, &secret_key, &state.settings);
         let mut code = axum::http::StatusCode::INTERNAL_SERVER_ERROR;
         let mut message = "Failed request.".to_owned();
         if let Some(res) = response {
@@ -89,11 +108,7 @@ pub async fn check_room(
     }
 }
 
-fn handle_room_state(
-    room_id: &str,
-    secret_key: &str,
-    settings: &crate::settings::Settings,
-) {
+fn handle_room_state(room_id: &str, secret_key: &str, settings: &crate::settings::Settings) {
     //println!("Starting handler for room {room_id}.");
     loop {
         let response = crate::udp::client::delete_room(room_id, secret_key, settings);
