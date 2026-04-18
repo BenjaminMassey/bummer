@@ -18,7 +18,6 @@ struct Args {
     host: bool,
 }
 
-
 fn conf() -> Conf {
     Conf {
         window_title: "Minimal Macroquad".to_owned(),
@@ -57,14 +56,15 @@ async fn main() {
         );
 
         let response = multiplayer::udp(&socket, &args.name, my_pos.0, my_pos.1);
-        let tagged_response: bummer::udp::data::TaggedMessage = serde_json::from_str(&response).unwrap();
-        let game_message: bummer::udp::data::GameMessage<multiplayer::PlayerState> =
-            serde_json::from_str(&tagged_response.data).unwrap();
-        for (player_name, player_state) in game_message.state.data.iter() {
-            if player_name != &args.name {
-                let pos = player_state.state.position;
-                draw_rectangle(pos.0, pos.1, PLAYER_WIDTH, PLAYER_HEIGHT, RED);
-                draw_text(player_name, pos.0, pos.1, PLAYER_WIDTH, BLACK);
+        let game_message: Result<bummer::udp::data::GameMessage<multiplayer::PlayerState>, _> =
+            serde_json::from_str(&response);
+        if let Ok(msg) = game_message {
+            for (player_name, player_state) in msg.state.data.iter() {
+                if player_name != &args.name {
+                    let pos = player_state.state.position;
+                    draw_rectangle(pos.0, pos.1, PLAYER_WIDTH, PLAYER_HEIGHT, RED);
+                    draw_text(player_name, pos.0, pos.1, PLAYER_WIDTH, BLACK);
+                }
             }
         }
 
