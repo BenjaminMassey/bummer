@@ -22,6 +22,8 @@ where
 
     let mut buf = [0; 1024];
 
+    let mut cull_time = crate::util::epoch_time();
+
     loop {
         if let Ok((amt, src)) = socket.recv_from(&mut buf) {
             let data = String::from_utf8_lossy(&buf[..amt]);
@@ -44,6 +46,12 @@ where
                 &http_msg,
             );
         }
+
+        if (crate::util::epoch_time() - cull_time) >= 1000 {
+            crate::udp::guillotine::delete_stale_rooms(&mut states);
+            crate::udp::guillotine::delete_stale_players(&mut states);
+            cull_time = crate::util::epoch_time();
+        }
     }
 }
 
@@ -64,10 +72,6 @@ fn handle_http_message<T>(
         response = crate::udp::actions::create_room(states, &data);
     } else if tag == "check_room" {
         response = crate::udp::actions::check_room(states, &data);
-    } else if tag == "delete_room" {
-        response = crate::udp::actions::delete_room(states, &data);
-    } else if tag == "delete_players" {
-        response = crate::udp::actions::delete_players(states, &data);
     }
     send_to_http
         .send(response)
