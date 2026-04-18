@@ -2,6 +2,8 @@
 
 <b>B</b>arebones <b>U</b>DP-based <b>M</b>ultiplayer <b>M</b>anager <b>E</b>ngine in <b>R</b>ust
 
+![minimal-macroquad](./demo.gif)
+
 ## Getting Started
 
 The most minimal example for running a <b>BUMMER</b> server is found in the [`minimal-server` example](https://github.com/BenjaminMassey/bummer/blob/main/examples/minimal-server). For a barebones <b>BUMMER</b> server,  all one should need to do is to modify the the `PlayerState` struct in order to comply with project needs. The rest would be handled within the game client.
