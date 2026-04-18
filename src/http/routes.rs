@@ -13,14 +13,22 @@ pub async fn create_room(
         return (auth_status, auth_message);
     }
     let room_id = payload.room_id.clone();
-    println!("create room a");
     state
-        .mpsc_sender
+        .send_to_udp
         .send(format!("create_room:{}", &room_id))
         .expect("Error with create_room mpsc send.");
-    println!("create room b");
-    // TODO: get real response from udp server
-    return (axum::http::StatusCode::OK, "Done.".to_owned());
+    if let Ok(msg) = state
+        .receive_from_udp
+        .lock()
+        .expect("Error with create_room mpsc receive.")
+        .recv()
+    {
+        return (axum::http::StatusCode::OK, msg);
+    }
+    (
+        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+        crate::udp::messages::INTERNAL_SERVER_ERROR.to_owned(),
+    )
 }
 
 pub async fn check_room(
@@ -35,11 +43,21 @@ pub async fn check_room(
     }
     let room_id = payload.room_id.clone();
     state
-        .mpsc_sender
+        .send_to_udp
         .send(format!("check_room:{}", &room_id))
-        .expect("Error with create_room mpsc send.");
-    // TODO: get real response from udp server
-    return (axum::http::StatusCode::OK, "Done.".to_owned());
+        .expect("Error with check_room mpsc send.");
+    if let Ok(msg) = state
+        .receive_from_udp
+        .lock()
+        .expect("Error with check_room mpsc receive.")
+        .recv()
+    {
+        return (axum::http::StatusCode::OK, msg);
+    }
+    (
+        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+        crate::udp::messages::INTERNAL_SERVER_ERROR.to_owned(),
+    )
 }
 
 // TODO: some room+players delete system

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 pub fn start<T>(
-    mpsc_receiver: std::sync::mpsc::Receiver<String>,
+    send_to_http: std::sync::mpsc::Sender<String>,
+    receive_from_http: std::sync::mpsc::Receiver<String>,
     state_example: T,
 ) -> std::io::Result<()>
 where
@@ -11,6 +12,9 @@ where
 
     let host = format!("{}:{}", settings.udp.address, settings.udp.port);
     let socket = std::net::UdpSocket::bind(&host)?;
+    socket
+        .set_nonblocking(true)
+        .expect("Failed to set UDP socket to nonblocking.");
     println!("UDP server is listening on {host}");
 
     // Game/Room ID => Game State
@@ -19,28 +23,32 @@ where
     let mut buf = [0; 1024];
 
     loop {
-        let (amt, src) = socket.recv_from(&mut buf)?;
+        if let Ok((amt, src)) = socket.recv_from(&mut buf) {
+            let data = String::from_utf8_lossy(&buf[..amt]);
 
-        let data = String::from_utf8_lossy(&buf[..amt]);
+            let mut response = crate::udp::messages::INTERNAL_SERVER_ERROR.to_owned();
 
-        let mut response = crate::udp::messages::INTERNAL_SERVER_ERROR.to_owned();
-
-        let player_message: Result<crate::udp::data::PlayerMessage<T>, serde_json::Error> =
-            serde_json::from_str(&data);
-        if let Ok(msg) = player_message {
-            response = crate::udp::actions::handle_player_message(&mut states, msg);
+            let player_message: Result<crate::udp::data::PlayerMessage<T>, serde_json::Error> =
+                serde_json::from_str(&data);
+            if let Ok(msg) = player_message {
+                response = crate::udp::actions::handle_player_message(&mut states, msg);
+            }
+            socket.send_to(&response.as_bytes(), src)?;
         }
-        println!("udp (out): {}", &response);
-        socket.send_to(&response.as_bytes(), src)?;
 
-        if let Ok(mpsc_msg) = mpsc_receiver.try_recv() {
-            println!("mpsc (in): {}", mpsc_msg);
-            handle_mpsc_message(state_example.clone(), &mut states, &mpsc_msg);
+        if let Ok(http_msg) = receive_from_http.try_recv() {
+            handle_http_message(
+                send_to_http.clone(),
+                state_example.clone(),
+                &mut states,
+                &http_msg,
+            );
         }
     }
 }
 
-fn handle_mpsc_message<T>(
+fn handle_http_message<T>(
+    send_to_http: std::sync::mpsc::Sender<String>,
     _state_example: T,
     states: &mut HashMap<String, crate::udp::data::GameState<T>>,
     message: &str,
@@ -61,6 +69,7 @@ fn handle_mpsc_message<T>(
     } else if tag == "delete_players" {
         response = crate::udp::actions::delete_players(states, &data);
     }
-    println!("mpsc (out): {}", &response);
-    // TODO: send this out such that http can respond
+    send_to_http
+        .send(response)
+        .expect("Error sending mspc to http.");
 }
