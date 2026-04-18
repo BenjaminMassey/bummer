@@ -3,6 +3,7 @@ mod settings;
 pub mod udp;
 mod util;
 
+pub use self::settings::*;
 pub use self::udp::data::GameState;
 pub use self::udp::data::PlayerMessage;
 

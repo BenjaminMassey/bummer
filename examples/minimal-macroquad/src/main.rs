@@ -29,16 +29,17 @@ fn conf() -> Conf {
 
 #[macroquad::main(conf)]
 async fn main() {
+    let settings = bummer::get_settings();
     let args = Args::parse();
     if args.host {
         let _ = std::thread::spawn(move || {
             bummer::start(multiplayer::PlayerState::default());
         });
-        multiplayer::create_room();
+        multiplayer::create_room(&settings);
     } else {
-        multiplayer::check_room();
+        multiplayer::check_room(&settings);
     }
-    let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    let socket = std::net::UdpSocket::bind("0.0.0.0:0").unwrap();
     let mut my_pos = (100f32, 100f32);
     loop {
         clear_background(WHITE);
@@ -55,7 +56,7 @@ async fn main() {
             (my_pos.1 + (vertical * SPEED)).clamp(0.0, WINDOW_HEIGHT as f32 - PLAYER_HEIGHT),
         );
 
-        let response = multiplayer::udp(&socket, &args.name, my_pos.0, my_pos.1);
+        let response = multiplayer::udp(&settings, &socket, &args.name, my_pos.0, my_pos.1);
         let game_message: Result<bummer::udp::data::GameMessage<multiplayer::PlayerState>, _> =
             serde_json::from_str(&response);
         if let Ok(msg) = game_message {
