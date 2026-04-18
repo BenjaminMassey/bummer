@@ -42,11 +42,7 @@ pub fn udp(socket: &std::net::UdpSocket, name: &str, x: f32, y: f32) -> String {
         player_id: name.to_owned(),
         state: PlayerState { position: (x, y) },
     };
-    let tagged_message = bummer::udp::data::TaggedMessage {
-        tag: "player_message".to_owned(),
-        data: serde_json::to_string(&player_message).unwrap(),
-    };
-    let message = serde_json::to_string(&tagged_message).unwrap();
+    let message = serde_json::to_string(&player_message).unwrap();
     let _ = socket
         .send_to(message.as_bytes(), "127.0.0.1:8081")
         .unwrap();
