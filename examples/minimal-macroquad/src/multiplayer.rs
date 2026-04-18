@@ -8,7 +8,7 @@ pub fn create_room() {
         .body(body)
         .send()
         .unwrap();
-    //assert!(create.status().is_success() && &create.text().unwrap() == "Room created.");
+    assert!(create.status().is_success() && &create.text().unwrap() == "Room created.");
 }
 
 pub fn check_room() {
@@ -21,7 +21,7 @@ pub fn check_room() {
         .body(body)
         .send()
         .unwrap();
-    //assert!(create.status().is_success() && &create.text().unwrap() == "Room exists.");
+    assert!(create.status().is_success() && &create.text().unwrap() == "Room exists.");
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]

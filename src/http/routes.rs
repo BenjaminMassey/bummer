@@ -60,8 +60,6 @@ pub async fn check_room(
     )
 }
 
-// TODO: some room+players delete system
-
 fn check_auth(key: &str) -> (axum::http::StatusCode, String) {
     let auth_key = crate::get_auth_key();
     if let Some(auth_key) = auth_key {
