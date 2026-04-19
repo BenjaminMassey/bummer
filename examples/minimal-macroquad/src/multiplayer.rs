@@ -1,11 +1,11 @@
-pub fn create_room(settings: &bummer::Settings) {
+pub fn create_room(settings: &bummer::Settings, room_id: &str) {
     let client = reqwest::blocking::Client::new();
     let auth_key = bummer::get_auth_key().expect("failed to read \"auth.key\"");
     let address = format!(
         "http://{}:{}/createRoom",
         settings.http.address, settings.http.port
     );
-    let body = format!(r#"{{ "auth_key": "{auth_key}", "room_id": "test" }}"#);
+    let body = format!(r#"{{ "auth_key": "{auth_key}", "room_id": "{room_id}" }}"#);
     let create = client
         .post(address)
         .header("Content-Type", "application/json")
@@ -15,21 +15,21 @@ pub fn create_room(settings: &bummer::Settings) {
     assert!(create.status().is_success() && &create.text().unwrap() == "Room created.");
 }
 
-pub fn check_room(settings: &bummer::Settings) {
+pub fn check_room(settings: &bummer::Settings, room_id: &str) -> bool {
     let client = reqwest::blocking::Client::new();
     let auth_key = bummer::get_auth_key().expect("failed to read \"auth.key\"");
     let address = format!(
         "http://{}:{}/checkRoom",
         settings.http.address, settings.http.port
     );
-    let body = format!(r#"{{ "auth_key": "{auth_key}", "room_id": "test" }}"#);
+    let body = format!(r#"{{ "auth_key": "{auth_key}", "room_id": "{room_id}" }}"#);
     let create = client
         .get(address)
         .header("Content-Type", "application/json")
         .body(body)
         .send()
         .unwrap();
-    assert!(create.status().is_success() && &create.text().unwrap() == "Room exists.");
+    create.status().is_success() && &create.text().unwrap() == "Room exists."
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]

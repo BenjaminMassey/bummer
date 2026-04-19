@@ -13,7 +13,9 @@ const SPEED: f32 = 2.0;
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(long)]
-    name: String,
+    name: Option<String>,
+    #[arg(long)]
+    room: Option<String>,
     #[arg(long, default_value_t = false)]
     host: bool,
 }
@@ -27,17 +29,30 @@ fn conf() -> Conf {
     }
 }
 
-#[macroquad::main(conf)]
-async fn main() {
-    let settings = bummer::get_settings();
+fn main() {
     let args = Args::parse();
+    if args.host && args.name.is_none() && args.room.is_none() {
+        bummer::start(multiplayer::PlayerState::default());
+    } else {
+        macroquad::Window::from_config(conf(), run(args));
+    }
+}
+
+async fn run(args: Args) {
+    let settings = bummer::get_settings();
     if args.host {
         let _ = std::thread::spawn(move || {
             bummer::start(multiplayer::PlayerState::default());
         });
-        multiplayer::create_room(&settings);
-    } else {
-        multiplayer::check_room(&settings);
+    }
+    let my_name = args
+        .name
+        .expect("argument --name required when not soley hosting");
+    let room_id = args
+        .room
+        .expect("argument --room required when not soley hosting");
+    if !multiplayer::check_room(&settings, &room_id) {
+        multiplayer::create_room(&settings, &room_id);
     }
     let socket = std::net::UdpSocket::bind("0.0.0.0:0").unwrap();
     let mut my_pos = (100f32, 100f32);
@@ -45,7 +60,7 @@ async fn main() {
         clear_background(WHITE);
 
         draw_rectangle(my_pos.0, my_pos.1, PLAYER_WIDTH, PLAYER_HEIGHT, GREEN);
-        draw_text(&args.name, my_pos.0, my_pos.1, PLAYER_WIDTH, BLACK);
+        draw_text(&my_name, my_pos.0, my_pos.1, PLAYER_WIDTH, BLACK);
 
         let vertical: f32 = if is_key_down(KeyCode::W) { -1.0 } else { 0.0 }
             + if is_key_down(KeyCode::S) { 1.0 } else { 0.0 };
@@ -56,12 +71,12 @@ async fn main() {
             (my_pos.1 + (vertical * SPEED)).clamp(0.0, WINDOW_HEIGHT as f32 - PLAYER_HEIGHT),
         );
 
-        let response = multiplayer::udp(&settings, &socket, &args.name, my_pos.0, my_pos.1);
+        let response = multiplayer::udp(&settings, &socket, &my_name, my_pos.0, my_pos.1);
         let game_message: Result<bummer::udp::data::GameMessage<multiplayer::PlayerState>, _> =
             serde_json::from_str(&response);
         if let Ok(msg) = game_message {
             for (player_name, player_state) in msg.state.data.iter() {
-                if player_name != &args.name {
+                if player_name != &my_name {
                     let pos = player_state.state.position;
                     draw_rectangle(pos.0, pos.1, PLAYER_WIDTH, PLAYER_HEIGHT, RED);
                     draw_text(player_name, pos.0, pos.1, PLAYER_WIDTH, BLACK);
