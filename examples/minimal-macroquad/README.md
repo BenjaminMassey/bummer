@@ -12,12 +12,15 @@ Make sure this project has a file `auth.key` at its root. This is used for <b>BU
 
 `echo abc123 > auth.key`
 
-In one instance, run:
+To solely host the server, run:
 
-`cargo run -- --name bob --host`
+`cargo run -- --host`
 
-In another instance, run:
+Users can then join like this:
 
-`cargo run -- --name joe`
+`cargo run -- --room test --name tester`
+
+To both host the server and spawn a client, run:
+`cargo run -- --room test --name tester --host`
 
 Move around the windows as needed for testing. Take turns clicking into each window, and use WASD to move.
